@@ -2,11 +2,11 @@
 
 2. HashMap的put流程
 
-3. JVM哪些是共享去，哪些可以作为gc root
+3. JVM哪些是共享区，哪些可以作为gc root
 
 4. spring容器的创建流程
   a.首先会扫描所有的beanDefinition对象，并放入全局的map中
-  b.然后筛选出非懒加载的单例BeanDefinition对象进行创建，多例对象是在bean使用通过BeanDefinition创建
+  b.然后筛选出非懒加载的单例BeanDefinition对象进行创建，多例对象是在bean使用时通过BeanDefinition创建
   c.创建Bean包括了合并BeanDefinition、推断构造方法、实例化、属性填充、初始化前、初始化、初始化后等步骤，AOP在初始化后
 
 5. spring的事务机制
@@ -17,3 +17,66 @@
   b. 注解使用失效
   c. 异常被catch，没有抛出
   d. 非注解方法调用注解方法
+  
+7. Dubbo是如何做系统交互的
+
+8. Jdk1.7到Jdk1.8 java虚拟机发⽣了什么变化
+
+9. 常⽤的SpringBoot注解，及其实现
+  1. @SpringBootApplication注解：这个注解标识了⼀个SpringBoot⼯程，它实际上是另外三个注解的组合，这三个注解是：
+    a. @SpringBootConfiguration：这个注解实际就是⼀个@Configuration，表示启动类也是⼀个配置类
+    b. @EnableAutoConfiguration：⽤来加载ClassPath下SpringFactories中所定义的⾃动配置类，将这些⾃动加载为配置Bean
+    c. @ComponentScan：所以SpringBoot扫描的路径是启动类所在的当前⽬录
+  2. @Bean注解：⽤来定义Bean，类似于XML中的<bean>标签，Spring在启动时，会对加了@Bean注解的⽅法进⾏解析，将⽅法的名字
+      做为beanName，并通过执⾏⽅法得到bean对象
+  3. @Controller、@Service、@ResponseBody、@Autowired等
+
+10. 说说你了解的分布式锁实现
+  基于Redis，Redis中的数据也是在内存，基于Redis的消费订阅功能、数据超时时间，lua脚本等功能，也能很好的实现的分布式锁
+
+11. Redis的数据结构及使⽤场景
+
+12. Redis集群策略
+  1. 主从模式：这种模式⽐较简单，主库可以读写，并且会和从库进⾏数据同步，这种模式下，客户端直接连主库或某个从库，但是但主库或从库宕机后，客户端需要⼿动修改IP，另外，这种模式也⽐较难进⾏扩容，整个集群所能存储的数据受到某台机器的内存容量，所以不可能⽀持特⼤数据量
+  2. 哨兵模式：这种模式在主从的基础上新增了哨兵节点，但主库节点宕机后，哨兵会发现主库节点宕机，然后在从库中选择⼀个库作为进的主库，另外哨兵也可以做集群，从⽽可以保证但某⼀个哨兵节点宕机后，还有其他哨兵节点可以继续⼯作，这种模式可以⽐较好的保证Redis集群的⾼可⽤，但是仍然不能很好的解决Redis的容量上限问题。
+  3. Cluster模式：Cluster模式是⽤得⽐较多的模式，它⽀持多主多从，这种模式会按照key进⾏槽位的分配，可以使得不同的key分散到不同的主节点上，利⽤这种模式可以使得整个集群⽀持更⼤的数据容量，同时每个主节点可以拥有⾃⼰的多个从节点，如果该主节点宕机，会从它的从节点中选举⼀个新的主节点。
+
+13. Innodb是如何实现事务的
+  Innodb通过Buffer Pool，LogBuffer，Redo Log，Undo Log来实现事务，以⼀个update语句为例：
+  1. Innodb在收到⼀个update语句后，会先根据条件找到数据所在的⻚，并将该⻚缓存在Buffer Pool中
+  2. 执⾏update语句，修改Buffer Pool中的数据，也就是内存中的数据
+  3. 针对update语句⽣成⼀个RedoLog对象，并存⼊LogBuffer中
+  4. 针对update语句⽣成undolog⽇志，⽤于事务回滚
+  5. 如果事务提交，那么则把RedoLog对象进⾏持久化，后续还有其他机制将Buffer Pool中所修改的数据⻚持久化到磁盘中
+  6. 如果事务回滚，则利⽤undolog⽇志进⾏回滚
+
+14. 谈谈ConcurrentHashMap的扩容机制
+  1.7版本
+  1. 1.7版本的ConcurrentHashMap是基于Segment分段实现的
+  2. 每个Segment相对于⼀个⼩型的HashMap
+  3. 每个Segment内部会进⾏扩容，和HashMap的扩容逻辑类似
+  4. 先⽣成新的数组，然后转移元素到新数组中
+  5. 扩容的判断也是每个Segment内部单独判断的，判断是否超过阈值
+  1.8版本
+  1. 1.8版本的ConcurrentHashMap不再基于Segment实现
+  2. 当某个线程进⾏put时，如果发现ConcurrentHashMap正在进⾏扩容那么该线程⼀起进⾏扩容
+  3. 如果某个线程put时，发现没有正在进⾏扩容，则将key-value添加到ConcurrentHashMap中，然后判断是否超过阈值，超过了则进⾏扩容
+  4. ConcurrentHashMap是⽀持多个线程同时扩容的
+  5. 扩容之前也先⽣成⼀个新的数组
+  6. 在转移元素时，先将原数组分组，将每组分给不同的线程来进⾏元素的转移，每个线程负责⼀组或多组的元素转移⼯作
+
+15. 消息队列如何保证消息可靠传输
+  消息可靠传输代表了两层意思，既不能多也不能少。
+  1. 为了保证消息不多，也就是消息不能重复，也就是⽣产者不能重复⽣产消息，或者消费者不能重复消费消息
+    a. ⾸先要确保消息不多发，这个不常出现，也⽐较难控制，因为如果出现了多发，很⼤的原因是⽣产者⾃⼰的原因，如果要避免出现问题，就需要在消费端做控制
+    b. 要避免不重复消费，最保险的机制就是消费者实现幂等性，保证就算重复消费，也不会有问题，通过幂等性，也能解决⽣产者重复发送消息的问题
+  2. 消息不能少，意思就是消息不能丢失，⽣产者发送的消息，消费者⼀定要能消费到，对于这个问题，就要考虑两个⽅⾯
+    a. ⽣产者发送消息时，要确认broker确实收到并持久化了这条消息，⽐如RabbitMQ的confirm机制，Kafka的ack机制都可以保证⽣产者能正确的将消息发送给broker
+    b. broker要等待消费者真正确认消费到了消息时才删除掉消息，这⾥通常就是消费端ack机制，消费者接收到⼀条消息后，如果确认没问题了，就可以给broker发送⼀个ack，broker接收到ack后才
+会删除消息
+16.
+
+
+
+
+
